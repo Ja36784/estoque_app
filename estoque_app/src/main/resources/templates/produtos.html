@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estoque</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body class="bg-light">
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">Gestão de Produtos</h1>
+
+        <!-- Formulário para Adicionar Produto -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2>Adicionar Produto</h2>
+            </div>
+            <div class="card-body">
+                <form id="formAdicionar">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="nome" class="form-label">Nome:</label>
+                            <input type="text" class="form-control" id="nome" required />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="preco" class="form-label">Preço:</label>
+                            <input type="number" class="form-control" id="preco" required />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="quantidade" class="form-label">Quantidade:</label>
+                            <input type="number" class="form-control" id="quantidade" required />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Adicionar Produto</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Formulário para Atualizar Quantidade de Produto -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2>Atualizar Quantidade de Produto</h2>
+            </div>
+            <div class="card-body">
+                <form id="formAtualizar">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nomeAtualizar" class="form-label">Nome do Produto:</label>
+                            <input type="text" class="form-control" id="nomeAtualizar" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="quantidadeAtualizar" class="form-label">Nova Quantidade:</label>
+                            <input type="number" class="form-control" id="quantidadeAtualizar" required />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-warning">Atualizar Quantidade</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Formulário para Remover Produto -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2>Remover Produto</h2>
+            </div>
+            <div class="card-body">
+                <form id="formRemover">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nomeRemover" class="form-label">Nome do Produto:</label>
+                            <input type="text" class="form-control" id="nomeRemover" required />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-danger">Remover Produto</button>
+                </form>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- Exibindo o valor total do estoque -->
+        <div id="valorTotalEstoque" class="alert alert-info d-flex align-items-center justify-content-between" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-boxes fa-lg me-2"></i>
+                <h3 class="mb-0">Valor Total do Estoque: <span id="valorTotal">R$ 0.00</span></h3>
+            </div>
+            <button id="valorTotalBtn" class="btn btn-light btn-sm">Atualizar</button>
+        </div>
+
+        <h2 class="mb-3">Produtos no Estoque</h2>
+        <table id="tabelaProdutos" class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Preço</th>
+                    <th>Quantidade</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        // Função para exibir o valor total do estoque
+        function exibirValorTotalEstoque() {
+            $.get("/api/estoque/valor-total", function(valorTotal) {
+                $("#valorTotal").text(valorTotal.toFixed(2));  // Exibe com 2 casas decimais
+            });
+        }
+
+        // Função para carregar os produtos
+        function carregarProdutos() {
+            $.get("/api/estoque/listar", function(data) {
+                let tabela = $("#tabelaProdutos tbody");
+                tabela.empty();  // Limpa a tabela antes de adicionar novos dados
+                data.forEach(function(produto) {
+                    tabela.append(`
+                        <tr>
+                            <td>${produto.nome}</td>
+                            <td>${produto.preco}</td>
+                            <td>${produto.quantidadeEmEstoque}</td>
+                        </tr>
+                    `);
+                });
+            });
+        }
+
+        // Função para limpar os campos do formulário
+        function limparFormulario(formId) {
+            $(formId)[0].reset();  // Limpa os campos do formulário
+        }
+
+        $(document).ready(function() {
+            exibirValorTotalEstoque();  // Exibe o valor total na inicialização da página
+        });
+
+        // Função para adicionar um produto
+        $("#formAdicionar").submit(function(event) {
+            event.preventDefault();
+            let produto = {
+                nome: $("#nome").val(),
+                preco: parseFloat($("#preco").val()),
+                quantidadeEmEstoque: parseInt($("#quantidade").val())
+            };
+
+            $.ajax({
+                url: "/api/estoque/adicionar",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(produto),
+                success: function() {
+                    alert("Produto adicionado com sucesso!");
+                    carregarProdutos();
+                    exibirValorTotalEstoque();  // Atualiza o valor total após adicionar
+                    limparFormulario("#formAdicionar");  // Limpa os campos do formulário
+                },
+                error: function() {
+                    alert("Erro ao adicionar produto!");
+                }
+            });
+        });
+
+        // Função para atualizar a quantidade de um produto
+        $("#formAtualizar").submit(function(event) {
+            event.preventDefault();
+            let nome = $("#nomeAtualizar").val();
+            let novaQuantidade = parseInt($("#quantidadeAtualizar").val());
+            $.ajax({
+                url: `/api/estoque/atualizar/${nome}?novaQuantidade=${novaQuantidade}`,
+                type: "PUT",
+                success: function() {
+                    alert("Quantidade atualizada!");
+                    carregarProdutos();
+                    exibirValorTotalEstoque();  // Atualiza o valor total após atualizar
+                    limparFormulario("#formAtualizar");  // Limpa os campos do formulário
+                },
+                error: function() {
+                    alert("Produto não encontrado.");
+                }
+            });
+        });
+
+        // Função para remover um produto
+        $("#formRemover").submit(function(event) {
+            event.preventDefault();
+            let nome = $("#nomeRemover").val();
+            $.ajax({
+                url: `/api/estoque/remover/${nome}`,
+                type: "DELETE",
+                success: function() {
+                    alert("Produto removido com sucesso!");
+                    carregarProdutos();
+                    exibirValorTotalEstoque();  // Atualiza o valor total após remover
+                    limparFormulario("#formRemover");  // Limpa os campos do formulário
+                },
+                error: function() {
+                    alert("Produto não encontrado.");
+                }
+            });
+        });
+
+        // Carregar os produtos ao clicar no botão
+        $("#carregarProdutos").click(carregarProdutos);
+    </script>
+</body>
+</html>
